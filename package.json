@@ -1,0 +1,14 @@
+{
+  "name": "sequenzia-random-bot",
+  "version": "1.0.0",
+  "dependencies": {
+    "amqplib": "^0.7.1",
+    "colors": "^1.4.0",
+    "eris": "^0.14.0",
+    "graylog2": "^0.2.1",
+    "md5": "^2.3.0",
+    "mysql": "^2.18.1",
+    "node-cron": "^3.0.0",
+    "node-persist": "^3.1.0"
+  }
+}
