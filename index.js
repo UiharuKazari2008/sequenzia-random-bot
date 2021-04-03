@@ -29,7 +29,8 @@ const sqlConnection = mysql.createConnection({
     host: systemglobal.SQLServer,
     user: systemglobal.SQLUsername,
     password: systemglobal.SQLPassword,
-    database: systemglobal.SQLDatabase
+    database: systemglobal.SQLDatabase,
+    charset: 'utf8mb4'
 });
 
 function simpleSQL (sql_q, callback) {
