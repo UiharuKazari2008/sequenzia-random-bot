@@ -1,0 +1,13 @@
+{
+  "SystemName": "Eiga-Dev",
+  "token": "ODI3MDMzODAyMjM2NjI0OTM3.YGVJPw.PAKpugjZ7WC839KWlC-LL2j2Kho",
+  "SQLServer": "192.168.250.1",
+  "MQServer": "192.168.250.2",
+  "LogServer": [ { "host": "192.168.250.3", "port": 5544 } ],
+  "SQLUsername": "eiga-dev",
+  "SQLPassword": "UQ^e/sK;SnXCv;AW3Q~DLmzwHp8UNaD",
+  "SQLDatabase": "kanmi_system",
+  "MQUsername": "eiga",
+  "MQPassword": "27659e41ccfe7a9cd1f0de859c616aaa50787edcf19b5db8f26fe1e4dd31a70fbfbae78ce506c5ba945e582aa70ee21f328bfa4fb5742c1f53153541c5041cb7",
+  "DiscordHomeGuild": "814251446080897025"
+}

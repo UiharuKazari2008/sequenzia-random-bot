@@ -505,14 +505,14 @@ function runtime() {
                                 SendMessage(`Error getting tagged quotes "${tag}"`, "error", 'main', "SQL", err);
                                 sendPost('');
                             } else if (text.length === 1) {
-                                sendPost('' + Buffer.from(text[0].text, 'base64').toString('utf8'));;
+                                sendPost(text[0].text);
                             } else {
                                 printLine("Randomizer", `Failed to find a quote tagged as ${tag}, Ignoring`, "error");
                                 sendPost('');
                             }
                         })
                     } else {
-                        sendPost('' + Buffer.from(input.message, 'base64').toString('utf8'));
+                        sendPost(input.message);
                     }
                 }
             }
@@ -526,7 +526,7 @@ function runtime() {
                             if (err) { SendMessage(`Error getting "${item.server}" aux data for ${item.id}`, "error", 'main', "SQL", err); } else if (servers.length === 1) {
                                 const meta = servers[0]
                                 let embed = {
-                                    "title": `${meta.class} / ${(meta.channel_nice)? Buffer.from(meta.channel_nice, 'base64').toString('utf-8') : Buffer.from(meta.channel, 'base64').toString('utf-8').split('-').join(' ')}`,
+                                    "title": `${meta.class} / ${(meta.channel_nice)? meta.channel_nice : meta.channel.split('-').join(' ')}`,
                                     "url": `https://seq.moe/${meta.uri}?channel=random&search=${item.id.substring(0,7)}`,
                                     "timestamp": item.date,
                                     "footer": {
@@ -534,13 +534,13 @@ function runtime() {
                                         "text": "Sequenzia (seq.moe)"
                                     },
                                     "author": {
-                                        "name": Buffer.from(meta.name, 'base64').toString('utf8'),
+                                        "name": meta.name,
                                         "url": "https://seq.moe/",
                                         "icon_url": `https://cdn.discordapp.com/icons/${meta.server}/${meta.avatar}.png`
                                     }
                                 };
                                 if (item.content_full.length >= 2) {
-                                    const description = Buffer.from(item.content_full, 'base64').toString('utf-8');
+                                    const description = item.content_full;
                                     if (description !== item.attachment_name) {
                                         embed.description = description;
                                     }
@@ -590,14 +590,14 @@ function runtime() {
                                                 SendMessage(`Error getting tagged quotes "${tag}"`, "error", 'main', "SQL", err);
                                                 sendPost('');
                                             } else if (text.length === 1) {
-                                                sendPost('' + Buffer.from(text[0].text, 'base64').toString('utf8'));;
+                                                sendPost(text[0].text);
                                             } else {
                                                 printLine("Randomizer", `Failed to find a quote tagged as ${tag}, Ignoring`, "error");
                                                 sendPost('');
                                             }
                                         })
                                     } else {
-                                        sendPost('' + Buffer.from(input.message, 'base64').toString('utf8'));
+                                        sendPost(input.message);
                                     }
                                 } else {
                                     sendPost('');
