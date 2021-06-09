@@ -194,7 +194,7 @@ function runtime() {
                 name: "Kanmi Accessories",
                 description: "Multi-Purpose Discord Framework",
                 owner: "Yukimi Kazari",
-                prefix: "sequenzia! ",
+                prefix: "!honey ",
                 restMode: true,
             });
             const staticChID = {
@@ -408,7 +408,20 @@ function runtime() {
             }
 
             function registerCommands() {
-
+                discordClient.registerCommand("random", function (msg,args) {
+                    if (args.length > 0) {
+                        sendRandomEmbed({
+                            channel: msg.channel.id
+                        })
+                    } else {
+                        SendMessage("⁉ Missing required information", "system", msg.member.guild.id, "YouTubeMgr")
+                    }
+                }, {
+                    argsRequired: false,
+                    caseInsensitive: true,
+                    description: "Gives Random Image",
+                    guildOnly: true
+                })
             }
 
             function registerTimers() {
@@ -518,7 +531,7 @@ function runtime() {
                 }
             }
             function sendRandomEmbed(input) {
-                simpleSQL(`SELECT * FROM kanmi_records WHERE (${input.search}) AND (attachment_url IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`, (err, items) => {
+                simpleSQL(`SELECT * FROM kanmi_records WHERE ${(input.search) ? '( ' + input.search + ') AND ' : ''}(attachment_url IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`, (err, items) => {
                     if (err) {
                         SendMessage(`Error getting random item for ${input.channel} using "${input.search}"`, "error", 'main', "SQL", err)
                     } else if (items.length === 1) {
