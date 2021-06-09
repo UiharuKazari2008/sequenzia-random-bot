@@ -518,12 +518,12 @@ function runtime() {
                 }
             }
             function sendRandomEmbed(input) {
-                simpleSQL(`SELECT * FROM discord_messages WHERE (${input.search}) AND (attachment_url IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`, (err, items) => {
+                simpleSQL(`SELECT * FROM kanmi_records WHERE (${input.search}) AND (attachment_url IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`, (err, items) => {
                     if (err) {
                         SendMessage(`Error getting random item for ${input.channel} using "${input.search}"`, "error", 'main', "SQL", err)
                     } else if (items.length === 1) {
                         const item = items[0]
-                        safeSQL('SELECT discord_servers.`serverid` as server, discord_servers.`name`, discord_servers.`avatar`, discord_channels.`name` AS channel, discord_channels.`nice_name` AS channel_nice, sequenzia_class.`name` AS class, sequenzia_superclass.`uri` AS uri FROM discord_servers, discord_channels, sequenzia_class, sequenzia_superclass WHERE discord_servers.`serverid` = discord_channels.`serverid` AND discord_channels.`channelid` = ? AND sequenzia_class.`class` = discord_channels.`classification` AND sequenzia_superclass.`super` = sequenzia_class.`super` LIMIT 1', [item.channel], (err, servers) => {
+                        safeSQL('SELECT discord_servers.`serverid` as server, discord_servers.`name`, discord_servers.`nice_name` AS server_nice, discord_servers.`avatar`, kanmi_channels.`name` AS channel, kanmi_channels.`nice_name` AS channel_nice, sequenzia_class.`name` AS class, sequenzia_superclass.`uri` AS uri FROM discord_servers, kanmi_channels, sequenzia_class, sequenzia_superclass WHERE discord_servers.`serverid` = kanmi_channels.`serverid` AND kanmi_channels.`channelid` = ? AND sequenzia_class.`class` = kanmi_channels.`classification` AND sequenzia_superclass.`super` = sequenzia_class.`super` LIMIT 1', [item.channel], (err, servers) => {
                             if (err) { SendMessage(`Error getting "${item.server}" aux data for ${item.id}`, "error", 'main', "SQL", err); } else if (servers.length === 1) {
                                 const meta = servers[0]
                                 let embed = {
@@ -535,7 +535,7 @@ function runtime() {
                                         "text": "Sequenzia (seq.moe)"
                                     },
                                     "author": {
-                                        "name": meta.name,
+                                        "name": (meta.server_nice) ? meta.server_nice : meta.name,
                                         "url": "https://seq.moe/",
                                         "icon_url": `https://cdn.discordapp.com/icons/${meta.server}/${meta.avatar}.png`
                                     }
