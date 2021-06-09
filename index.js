@@ -409,13 +409,9 @@ function runtime() {
 
             function registerCommands() {
                 discordClient.registerCommand("random", function (msg,args) {
-                    if (args.length > 0) {
-                        sendRandomEmbed({
-                            channel: msg.channel.id
-                        })
-                    } else {
-                        SendMessage("⁉ Missing required information", "system", msg.member.guild.id, "YouTubeMgr")
-                    }
+                    sendRandomEmbed({
+                        channel: msg.channel.id
+                    })
                 }, {
                     argsRequired: false,
                     caseInsensitive: true,
