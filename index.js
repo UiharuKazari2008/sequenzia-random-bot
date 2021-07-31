@@ -212,11 +212,23 @@ function runtime() {
             const discordClient = new eris.CommandClient(systemglobal.token, {
                 compress: true,
                 restMode: true,
+                intents: [
+                    'GUILDS',
+                    'GUILD_MEMBERS',
+                    'GUILD_EMOJIS_AND_STICKER',
+                    'GUILD_INVITES',
+                    'GUILD_MESSAGES',
+                    'GUILD_MESSAGE_REACTIONS',
+                    'GUILD_MESSAGE_TYPING',
+                    'GUILD_VOICE_STATES',
+                    'GUILD_PRESENCES'
+                ]
             }, {
                 name: "Kanmi Accessories",
                 description: "Multi-Purpose Discord Framework",
                 owner: "Yukimi Kazari",
                 prefix: "!honey ",
+                ignoreSelf: true,
                 restMode: true,
             });
             const staticChID = {
@@ -617,7 +629,8 @@ function runtime() {
             });
             discordClient.on("error", (err) => {
                 printLine("Discord", "Shard Error, Rebooting...", "error", err)
-                console.log(`${err.message}`.bgRed)
+                console.error(`${err.message}`.bgRed)
+                console.error(err)
                 discordClient.connect()
             });
 
