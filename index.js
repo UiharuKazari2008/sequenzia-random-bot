@@ -431,9 +431,16 @@ function runtime() {
 
             function registerCommands() {
                 discordClient.registerCommand("random", function (msg,args) {
+                    let searchQuery;
+                    if (systemglobal.DefaultRandomQueryPairs) {
+                        systemglobal.DefaultRandomQueryPairs.filter(e => e.channel === msq.channel.id).forEach(e => searchQuery = e.query);
+                    }
+                    if (!searchQuery && systemglobal.DefaultRandomQuery) {
+                        searchQuery = systemglobal.DefaultRandomQuery;
+                    }
                     sendRandomEmbed({
                         channel: msg.channel.id,
-                        search: (systemglobal.DefaultRandomQuery) ? systemglobal.DefaultRandomQuery: undefined
+                        search: searchQuery
                     })
                 }, {
                     argsRequired: false,
