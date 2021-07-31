@@ -9,5 +9,6 @@
   "SQLDatabase": "kanmi_system",
   "MQUsername": "eiga",
   "MQPassword": "27659e41ccfe7a9cd1f0de859c616aaa50787edcf19b5db8f26fe1e4dd31a70fbfbae78ce506c5ba945e582aa70ee21f328bfa4fb5742c1f53153541c5041cb7",
-  "DiscordHomeGuild": "814251446080897025"
+  "DiscordHomeGuild": "814251446080897025",
+  "DefaultRandomQuery": "channel = '726700215838703686' OR channel = '716529641808199690' OR channel = '731362512288743474' OR channel = '731357998693220393' OR channel = '731622192701243473' OR channel = '731624338259705908' OR channel = '731559918770847865' OR channel = '726701963626020916'"
 }
