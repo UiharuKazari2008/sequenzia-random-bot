@@ -432,7 +432,8 @@ function runtime() {
             function registerCommands() {
                 discordClient.registerCommand("random", function (msg,args) {
                     sendRandomEmbed({
-                        channel: msg.channel.id
+                        channel: msg.channel.id,
+                        search: (systemglobal.DefaultRandomQuery) ? systemglobal.DefaultRandomQuery: undefined
                     })
                 }, {
                     argsRequired: false,
