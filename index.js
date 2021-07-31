@@ -9,7 +9,7 @@ const crypto = require("crypto");
 const storageHandler = require('node-persist');
 const os = require('os');
 const cron = require('node-cron');
-const mysql = require('mysql');
+const mysql = require('mysql2');
 const colors = require('colors');
 const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 const graylog2 = require("graylog2");
@@ -32,6 +32,7 @@ const sqlConnection = mysql.createConnection({
     database: systemglobal.SQLDatabase,
     charset: 'utf8mb4'
 });
+const sqlPromise = sqlConnection.promise();
 
 function simpleSQL (sql_q, callback) {
     sqlConnection.query(sql_q, function (err, rows) {
@@ -43,6 +44,27 @@ function safeSQL (sql_q, inputs, callback) {
     sqlConnection.query(mysql.format(sql_q, inputs), function (err, rows) {
         callback(err, rows);
     });
+}
+async function sqlQuery (sql_q, inputs, nolog) {
+    if (!nolog)
+        console.log(mysql.format(sql_q, inputs))
+    try {
+        const [rows,fields] = await sqlPromise.query(sql_q, inputs);
+        return {
+            rows, fields, sql_q, inputs
+        }
+    } catch (err) {
+        console.error(sql_q);
+        console.error(inputs);
+        console.error(err);
+        return {
+            rows: [],
+            fields: [],
+            sql_q,
+            inputs,
+            error: err
+        };
+    }
 }
 
 if (systemglobal.LogServer && systemglobal.LogServer.length > 0) {
@@ -465,163 +487,101 @@ function runtime() {
                     }
                 })
             }
-            function sendRandomItems() {
-                simpleSQL(`SELECT * FROM seqran_channels`, (err, channels) => {
-                    if (err) {
-                        SendMessage(`Error getting channel configuration`, "error", 'main', "SQL", err)
-                    } else if (channels.length > 0) {
-                        channels.forEach(channel => {
-                            const _info = discordClient.getChannel(channel.channel)
-                            if (_info && _info.name) {
-                                if (channel.enabled === 1) {
-                                    printLine("Randomizer", `Processing "${_info.name}"@"${_info.guild.name}" ...`, "info");
-                                    sendRandomEmbed(channel);
-                                } else {
-                                    printLine("Randomizer", `Skipping  "${_info.name}"@"${_info.guild.name}"! Its Disabled`, "warning");
-                                }
-                            } else {
-                                printLine("Randomizer", `Failed to process ${channel.channel}, Cannot confirm access!`, "error");
-                            }
-                        })
-                    }
-                })
-            }
-            function sendRandomText(input) {
-                function sendPost(messageContents) {
-                    discordClient.createMessage(input.channel,{ content: messageContents })
-                        .then((msg) => {
-                            printLine("Randomizer", `Sent text to ${input.channel}`, "info");
-                            safeSQL("SELECT lastmessage FROM seqran_channels WHERE channel = ? AND search IS NULL AND message = ?", [input.channel, input.message], (err, last) => {
-                                if (err) { SendMessage(`Error getting last message for "${input.channel}"`, "error", 'main', "SQL", err); } else if (last.length > 0) {
-                                    if (last[0].lastmessage) {
-                                        discordClient.deleteMessage(input.channel, last[0].lastmessage)
-                                            .catch((err) => SendMessage(`Error deleting last message sent from ${input.channel} - ${err.message}`, "error", 'main', "Randomizer"))
-                                    }
-                                    safeSQL(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search IS NULL AND message = ?`, [msg.id, input.channel, input.message], (err, result) => {
-                                        if (err) { SendMessage(`Error updating last message for "${input.channel}"`, "error", 'main', "SQL", err); }
-                                    })
-                                }
-                            })
-                        })
-                        .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
-
-                }
-
+            async function sendRandomText(input) {
+                let messageText = '';
                 if (input.message) {
                     if (input.message.includes('QUOTE-')) {
                         const tag = input.message.split('QUOTE-').join('')
-                        safeSQL(`SELECT text FROM seqran_quotes WHERE tag LIKE ? ORDER BY RAND() LIMIT 1`, [`%${tag.toLowerCase()}%`], (err, text) => {
-                            if (err) {
-                                SendMessage(`Error getting tagged quotes "${tag}"`, "error", 'main', "SQL", err);
-                                sendPost('');
-                            } else if (text.length === 1) {
-                                sendPost(text[0].text);
-                            } else {
-                                printLine("Randomizer", `Failed to find a quote tagged as ${tag}, Ignoring`, "error");
-                                sendPost('');
-                            }
-                        })
-                    } else {
-                        sendPost(input.message);
+                        const text = await sqlQuery(`SELECT text FROM seqran_quotes WHERE tag LIKE ? ORDER BY RAND() LIMIT 1`, [`%${tag.toLowerCase()}%`]);
+                        if (text.rows.length === 1) {
+                            messageText = text.rows[0].text;
+                        } else {
+                            printLine("Randomizer", `Failed to find a quote tagged as ${tag}, Ignoring`, "error");
+                        }
                     }
                 }
+                discordClient.createMessage(input.channel,{ content: messageText })
+                    .then(async (msg) => {
+                        printLine("Randomizer", `Sent text to ${input.channel}`, "info");
+                        const last = await sqlQuery("SELECT lastmessage FROM seqran_channels WHERE channel = ? AND search IS NULL AND message = ?", [input.channel, input.message]);
+                        if (last.rows.length > 0) {
+                            if (last.rows[0].lastmessage) {
+                                discordClient.deleteMessage(input.channel, last.rows[0].lastmessage)
+                                    .catch((err) => SendMessage(`Error deleting last message sent from ${input.channel} - ${err.message}`, "error", 'main', "Randomizer"));
+                            }
+                            await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search IS NULL AND message = ?`, [msg.id, input.channel, input.message]);
+                        }
+                    })
+                    .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
             }
-            function sendRandomEmbed(input) {
-                simpleSQL(`SELECT * FROM kanmi_records WHERE ${(input.search) ? '( ' + input.search + ') AND ' : ''}(attachment_url IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`, (err, items) => {
-                    if (err) {
-                        SendMessage(`Error getting random item for ${input.channel} using "${input.search}"`, "error", 'main', "SQL", err)
-                    } else if (items.length === 1) {
-                        const item = items[0]
-                        safeSQL('SELECT discord_servers.`serverid` as server, discord_servers.`name`, discord_servers.`nice_name` AS server_nice, discord_servers.`avatar`, kanmi_channels.`name` AS channel, kanmi_channels.`nice_name` AS channel_nice, sequenzia_class.`name` AS class, sequenzia_superclass.`uri` AS uri FROM discord_servers, kanmi_channels, sequenzia_class, sequenzia_superclass WHERE discord_servers.`serverid` = kanmi_channels.`serverid` AND kanmi_channels.`channelid` = ? AND sequenzia_class.`class` = kanmi_channels.`classification` AND sequenzia_superclass.`super` = sequenzia_class.`super` LIMIT 1', [item.channel], (err, servers) => {
-                            if (err) { SendMessage(`Error getting "${item.server}" aux data for ${item.id}`, "error", 'main', "SQL", err); } else if (servers.length === 1) {
-                                const meta = servers[0]
-                                let embed = {
-                                    "title": `${meta.class} / ${(meta.channel_nice)? meta.channel_nice : meta.channel.split('-').join(' ')}`,
-                                    "url": `https://seq.moe/${meta.uri}?channel=random&search=${item.id.substring(0,7)}`,
-                                    "timestamp": item.date,
-                                    "footer": {
-                                        "icon_url": "https://cdn.discordapp.com/attachments/827315100998172693/827315626003136512/sequenzia-logo-mini-color.png",
-                                        "text": "Sequenzia (seq.moe)"
-                                    },
-                                    "author": {
-                                        "name": (meta.server_nice) ? meta.server_nice : meta.name,
-                                        "url": "https://seq.moe/",
-                                        "icon_url": `https://cdn.discordapp.com/icons/${meta.server}/${meta.avatar}.png`
-                                    }
-                                };
-                                if (item.content_full.length >= 2) {
-                                    const description = item.content_full;
-                                    if (description !== item.attachment_name) {
-                                        embed.description = description;
-                                    }
-                                }
-                                let url
-                                if (item.attachment_url) {
-                                    url = item.attachment_url;
-                                } else if (item.cache_url) {
-                                    url = item.cache_url;
-                                }
-                                if (accepted_image_types.indexOf(url.split('.').pop().toLowerCase())) {
-                                    embed.image = {
-                                        "url": url
-                                    }
-                                }
-                                if (item.colorR && item.colorG && item.colorB) {
-                                    embed.color = (item.colorR << 16) + (item.colorG << 8) + item.colorB;
+            async function sendRandomEmbed(input) {
+                const itemResults = await sqlQuery(`SELECT * FROM kanmi_records WHERE ${(input.search) ? '( ' + input.search + ') AND ' : ''}(attachment_url IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`,);
+                if (itemResults.rows.length === 1) {
+                    const item = itemResults.rows[0];
+                    const metadata = await sqlQuery('SELECT DISTINCT discord_servers.`serverid` as server, discord_servers.`name`, discord_servers.`nice_name` AS server_nice, discord_servers.`avatar`, kanmi_channels.`name` AS channel, kanmi_channels.`nice_name` AS channel_nice, sequenzia_class.`name` AS class, sequenzia_superclass.`uri` AS uri FROM discord_servers, kanmi_channels, sequenzia_class, sequenzia_superclass WHERE discord_servers.`serverid` = kanmi_channels.`serverid` AND kanmi_channels.`channelid` = ? AND sequenzia_class.`class` = kanmi_channels.`classification` AND sequenzia_superclass.`super` = sequenzia_class.`super` LIMIT 1', [item.channel]);
+                    if (metadata.rows.length === 1) {
+                        const meta = metadata.rows[0];
+                        let embed = {
+                            title: `${meta.class} / ${(meta.channel_nice)? meta.channel_nice : meta.channel.split('-').join(' ')}`,
+                            description: (item.content_full && item.content_full.length >= 2 && item.content_full !== item.attachment_name) ? item.attachment_name : undefined,
+                            url: `https://seq.moe/${meta.uri}?channel=random&search=eid:${item.eid}`,
+                            timestamp: item.date,
+                            color: (item.colorR && item.colorG && item.colorB) ? (item.colorR << 16) + (item.colorG << 8) + item.colorB : "16095753",
+                            footer: {
+                                icon_url: "https://cdn.discordapp.com/attachments/827315100998172693/827315626003136512/sequenzia-logo-mini-color.png",
+                                text: "Sequenzia (seq.moe)"
+                            },
+                            author: {
+                                name: (meta.server_nice) ? meta.server_nice : meta.name,
+                                url: "https://seq.moe/",
+                                icon_url: `https://cdn.discordapp.com/icons/${meta.server}/${meta.avatar}.png`
+                            }
+                        };
+                        let url
+                        if (item.attachment_url) {
+                            url = item.attachment_url;
+                        } else if (item.cache_url) {
+                            url = item.cache_url;
+                        }
+                        if (accepted_image_types.indexOf(url.split('.').pop().toLowerCase())) {
+                            embed.image = {
+                                "url": url
+                            }
+                        }
+
+                        let messageText = '';
+                        if (input.message) {
+                            if (input.message.includes('QUOTE-')) {
+                                const tag = input.message.split('QUOTE-').join('')
+                                const text = await sqlQuery(`SELECT text FROM seqran_quotes WHERE tag LIKE ? ORDER BY RAND() LIMIT 1`, [`%${tag.toLowerCase()}%`]);
+                                if (text.rows.length === 1) {
+                                    messageText = text.rows[0].text;
                                 } else {
-                                    embed.color = "16095753";
-                                }
-
-                                function sendPost(messageContents) {
-                                    discordClient.createMessage(input.channel,{ content: messageContents, embed: embed })
-                                        .then((msg) => {
-                                            printLine("Randomizer", `Sent ${item.attachment_name} to ${item.channel}`, "info");
-                                            safeSQL("SELECT lastmessage FROM seqran_channels WHERE channel = ? AND search = ?", [input.channel, input.search], (err, last) => {
-                                                if (err) { SendMessage(`Error getting last message for "${input.channel}"`, "error", 'main', "SQL", err); } else if (last.length > 0) {
-                                                    if (last[0].lastmessage) {
-                                                        discordClient.deleteMessage(input.channel, last[0].lastmessage)
-                                                            .catch((err) => SendMessage(`Error deleting last message sent from ${input.channel} - ${err.message}`, "error", 'main', "Randomizer"))
-                                                    }
-                                                    safeSQL(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search], (err, result) => {
-                                                        if (err) { SendMessage(`Error updating last message for "${input.channel}"`, "error", 'main', "SQL", err); }
-                                                    })
-                                                }
-                                            })
-                                        })
-                                        .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
-
-                                }
-
-                                if (input.message) {
-                                    if (input.message.includes('QUOTE-')) {
-                                        const tag = input.message.split('QUOTE-').join('')
-                                        safeSQL(`SELECT text FROM seqran_quotes WHERE tag LIKE ? ORDER BY RAND() LIMIT 1`, [`%${tag.toLowerCase()}%`], (err, text) => {
-                                            if (err) {
-                                                SendMessage(`Error getting tagged quotes "${tag}"`, "error", 'main', "SQL", err);
-                                                sendPost('');
-                                            } else if (text.length === 1) {
-                                                sendPost(text[0].text);
-                                            } else {
-                                                printLine("Randomizer", `Failed to find a quote tagged as ${tag}, Ignoring`, "error");
-                                                sendPost('');
-                                            }
-                                        })
-                                    } else {
-                                        sendPost(input.message);
-                                    }
-                                } else {
-                                    sendPost('');
+                                    printLine("Randomizer", `Failed to find a quote tagged as ${tag}, Ignoring`, "error");
                                 }
                             } else {
-                                SendMessage(`No server was found for ${item.server} for ${item.id}, this is not normal!`, "error", 'main', "Randomizer")
+                                messageText = input.message;
                             }
-                        })
-
-
+                        }
+                        discordClient.createMessage(input.channel,{ content: messageText, embed: embed })
+                            .then(async (msg) => {
+                                printLine("Randomizer", `Sent ${item.attachment_name} to ${item.channel}`, "info");
+                                const last = await sqlQuery("SELECT lastmessage FROM seqran_channels WHERE channel = ? AND search = ?", [input.channel, input.search]);
+                                if (last.rows.length > 0) {
+                                    if (last.rows[0].lastmessage) {
+                                        discordClient.deleteMessage(input.channel, last.rows[0].lastmessage)
+                                            .catch((err) => SendMessage(`Error deleting last message sent from ${input.channel} - ${err.message}`, "error", 'main', "Randomizer"))
+                                    }
+                                    await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search])
+                                }
+                            })
+                            .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                     } else {
-                        SendMessage(`No results found using "${input.search}" for ${input.channel}`, "error", 'main', "Randomizer")
+                        SendMessage(`No server was found for ${item.server} for ${item.id}, this is not normal!`, "error", 'main', "Randomizer")
                     }
-                })
+                } else {
+                    SendMessage(`No results found using "${input.search}" for ${input.channel}`, "error", 'main', "Randomizer")
+                }
             }
 
             // Discord Event Listeners
