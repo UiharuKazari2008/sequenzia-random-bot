@@ -579,14 +579,14 @@ function runtime() {
                         if (input.updateOnly === 1 && input.lastmessage) {
                             discordClient.editMessage(input.channel,input.lastmessage, { content: messageText, embed: embed })
                                 .then(async (msg) => {
-                                    printLine("Randomizer", `Sent ${item.attachment_name} to ${item.channel}`, "info");
+                                    printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                         } else {
                             discordClient.createMessage(input.channel,{ content: messageText, embed: embed })
                                 .then(async (msg) => {
-                                    printLine("Randomizer", `Sent ${item.attachment_name} to ${item.channel}`, "info");
+                                    printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
                                     const last = await sqlQuery("SELECT lastmessage FROM seqran_channels WHERE channel = ? AND search = ?", [input.channel, input.search]);
                                     if (last.rows.length > 0) {
                                         if (last.rows[0].lastmessage) {
