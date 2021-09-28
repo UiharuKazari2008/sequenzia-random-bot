@@ -213,9 +213,8 @@ function runtime() {
                 compress: true,
                 restMode: true,
                 intents: [
-                    'GUILDS',
-                    'GUILD_MESSAGES',
-                    'GUILD_MESSAGE_REACTIONS'
+                    'guildMessages',
+                    'guildMessageReactions',
                 ]
             }, {
                 name: "Kanmi Accessories",
