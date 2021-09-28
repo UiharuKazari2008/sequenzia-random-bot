@@ -613,9 +613,9 @@ function runtime() {
             }
 
             // Discord Event Listeners
-            discordClient.on('messageReactionAdd', (msg, emoji) => {
+            discordClient.on('messageReactionAdd', (msg, emoji, user) => {
                 console.log(emoji)
-                if (emoji.name === '🔀') {
+                if (!user.isBot && emoji.name === '🔀') {
                     safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? LIMIT 1`, [msg.channel.id, msg.id], (err, channels) => {
                         if (err) {
                             SendMessage(`Error getting channel configuration`, "error", 'main', "SQL", err)
