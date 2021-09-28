@@ -577,20 +577,30 @@ function runtime() {
                                 messageText = input.message;
                             }
                         }
-                        discordClient.createMessage(input.channel,{ content: messageText, embed: embed })
-                            .then(async (msg) => {
-                                printLine("Randomizer", `Sent ${item.attachment_name} to ${item.channel}`, "info");
-                                const last = await sqlQuery("SELECT lastmessage FROM seqran_channels WHERE channel = ? AND search = ?", [input.channel, input.search]);
-                                if (last.rows.length > 0) {
-                                    if (last.rows[0].lastmessage) {
-                                        discordClient.deleteMessage(input.channel, last.rows[0].lastmessage)
-                                            .catch((err) => SendMessage(`Error deleting last message sent from ${input.channel} - ${err.message}`, "error", 'main', "Randomizer"))
+                        if (input.updateOnly === 1 && input.lastmessage) {
+                            discordClient.editMessage(input.channel,{ content: messageText, embed: embed })
+                                .then(async (msg) => {
+                                    printLine("Randomizer", `Sent ${item.attachment_name} to ${item.channel}`, "info");
+                                    await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
+                                })
+                                .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
+                        } else {
+                            discordClient.createMessage(input.channel,{ content: messageText, embed: embed })
+                                .then(async (msg) => {
+                                    printLine("Randomizer", `Sent ${item.attachment_name} to ${item.channel}`, "info");
+                                    const last = await sqlQuery("SELECT lastmessage FROM seqran_channels WHERE channel = ? AND search = ?", [input.channel, input.search]);
+                                    if (last.rows.length > 0) {
+                                        if (last.rows[0].lastmessage) {
+                                            discordClient.deleteMessage(input.channel, last.rows[0].lastmessage)
+                                                .catch((err) => SendMessage(`Error deleting last message sent from ${input.channel} - ${err.message}`, "error", 'main', "Randomizer"))
+                                        }
+                                        await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search])
                                     }
-                                    await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search])
-                                }
-                                await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
-                            })
-                            .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
+                                    await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
+                                })
+                                .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
+                        }
+
                     } else {
                         SendMessage(`No server was found for ${item.server} for ${item.id}, this is not normal!`, "error", 'main', "Randomizer")
                     }
