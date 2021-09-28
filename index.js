@@ -537,7 +537,7 @@ function runtime() {
                         const meta = metadata.rows[0];
                         let embed = {
                             title: `${meta.class} / ${(meta.channel_nice)? meta.channel_nice : meta.channel.split('-').join(' ')}`,
-                            description: (item.content_full && item.content_full.length >= 2 && item.content_full !== item.attachment_name) ? item.attachment_name : undefined,
+                            description: (item.content_full && item.content_full.length >= 2 && item.content_full !== item.attachment_name) ? item.content_full : undefined,
                             url: `https://seq.moe/${meta.uri}?channel=random&search=eid:${item.eid}`,
                             timestamp: item.date,
                             color: (item.colorR && item.colorG && item.colorB) ? (item.colorR << 16) + (item.colorG << 8) + item.colorB : "16095753",
