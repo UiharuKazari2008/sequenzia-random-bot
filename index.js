@@ -557,7 +557,7 @@ function runtime() {
                             }
                         }
 
-                        let messageText = '';
+                        let messageText = undefined;
                         if (input.message) {
                             if (input.message.includes('QUOTE-')) {
                                 const tag = input.message.split('QUOTE-').join('')
