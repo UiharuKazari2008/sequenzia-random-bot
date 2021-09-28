@@ -541,12 +541,7 @@ function runtime() {
                             timestamp: item.date,
                             color: (item.colorR && item.colorG && item.colorB) ? (item.colorR << 16) + (item.colorG << 8) + item.colorB : "16095753",
                             footer: {
-                                icon_url: "https://cdn.discordapp.com/attachments/827315100998172693/827315626003136512/sequenzia-logo-mini-color.png",
-                                text: "Sequenzia (seq.moe)"
-                            },
-                            author: {
-                                name: (meta.server_nice) ? meta.server_nice : meta.name,
-                                url: "https://seq.moe/",
+                                text: (meta.server_nice) ? meta.server_nice : meta.name,
                                 icon_url: `https://cdn.discordapp.com/icons/${meta.server}/${meta.avatar}.png`
                             }
                         };
