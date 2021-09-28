@@ -601,6 +601,7 @@ function runtime() {
 
             // Discord Event Listeners
             discordClient.on('messageReactionAdd', (msg, emoji) => {
+                console.log(emoji)
                 if (emoji.name === '🔄') {
                     safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? LIMIT 1`, [msg.channel.id, msg.id], (err, channels) => {
                         if (err) {
