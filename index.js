@@ -578,7 +578,7 @@ function runtime() {
                             }
                         }
                         if (input.updateOnly === 1 && input.lastmessage) {
-                            discordClient.editMessage(input.channel,{ content: messageText, embed: embed })
+                            discordClient.editMessage(input.channel,input.lastmessage, { content: messageText, embed: embed })
                                 .then(async (msg) => {
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${item.channel}`, "info");
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
