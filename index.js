@@ -588,7 +588,7 @@ function runtime() {
                                     }
                                     await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search])
                                 }
-                                await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔄')
+                                await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
                             })
                             .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                     } else {
@@ -602,7 +602,7 @@ function runtime() {
             // Discord Event Listeners
             discordClient.on('messageReactionAdd', (msg, emoji) => {
                 console.log(emoji)
-                if (emoji.name === '🔄') {
+                if (emoji.name === '🔀') {
                     safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? LIMIT 1`, [msg.channel.id, msg.id], (err, channels) => {
                         if (err) {
                             SendMessage(`Error getting channel configuration`, "error", 'main', "SQL", err)
