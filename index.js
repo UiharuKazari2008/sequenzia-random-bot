@@ -214,14 +214,8 @@ function runtime() {
                 restMode: true,
                 intents: [
                     'GUILDS',
-                    'GUILD_MEMBERS',
-                    'GUILD_EMOJIS_AND_STICKER',
-                    'GUILD_INVITES',
                     'GUILD_MESSAGES',
-                    'GUILD_MESSAGE_REACTIONS',
-                    'GUILD_MESSAGE_TYPING',
-                    'GUILD_VOICE_STATES',
-                    'GUILD_PRESENCES'
+                    'GUILD_MESSAGE_REACTIONS'
                 ]
             }, {
                 name: "Kanmi Accessories",
@@ -594,6 +588,7 @@ function runtime() {
                                     }
                                     await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search])
                                 }
+                                await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔄')
                             })
                             .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                     } else {
@@ -605,6 +600,21 @@ function runtime() {
             }
 
             // Discord Event Listeners
+            discordClient.on('messageReactionAdd', (msg, emoji) => {
+                if (emoji.name === '🔄') {
+                    safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? LIMIT 1`, [msg.channel.id, msg.id], (err, channels) => {
+                        if (err) {
+                            SendMessage(`Error getting channel configuration`, "error", 'main', "SQL", err)
+                        } else if (channels.length > 0) {
+                            if (channels[0].search) {
+                                sendRandomEmbed(channels[0]);
+                            } else {
+                                sendRandomText(channels[0]);
+                            }
+                        }
+                    })
+                }
+            })
             discordClient.on("ready", () => {
                 printLine("Discord", "Connected successfully to Discord!", "debug")
                 discordClient.getSelf()
