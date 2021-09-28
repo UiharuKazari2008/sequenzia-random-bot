@@ -617,6 +617,7 @@ function runtime() {
                         if (err) {
                             SendMessage(`Error getting channel configuration`, "error", 'main', "SQL", err)
                         } else if (channels.length > 0) {
+                            discordClient.removeMessageReactions(msg.channel.id, msg.id)
                             if (channels[0].search) {
                                 sendRandomEmbed(channels[0]);
                             } else {
