@@ -593,7 +593,11 @@ function runtime() {
                                             discordClient.deleteMessage(input.channel, last.rows[0].lastmessage)
                                                 .catch((err) => SendMessage(`Error deleting last message sent from ${input.channel} - ${err.message}`, "error", 'main', "Randomizer"))
                                         }
-                                        await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search])
+                                        if (input.linked === 1) {
+                                            await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ?`, [msg.id, input.channel])
+                                        } else {
+                                            await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search])
+                                        }
                                     }
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
                                 })
