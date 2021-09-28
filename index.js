@@ -536,7 +536,6 @@ function runtime() {
                         const meta = metadata.rows[0];
                         let embed = {
                             title: `${meta.class} / ${(meta.channel_nice)? meta.channel_nice : meta.channel.split('-').join(' ')}`,
-                            description: (item.content_full && item.content_full.length >= 2 && item.content_full !== item.attachment_name) ? item.content_full : undefined,
                             url: `https://seq.moe/${meta.uri}?channel=random&search=eid:${item.eid}`,
                             timestamp: item.date,
                             color: (item.colorR && item.colorG && item.colorB) ? (item.colorR << 16) + (item.colorG << 8) + item.colorB : "16095753",
@@ -570,6 +569,16 @@ function runtime() {
                             } else {
                                 messageText = input.message;
                             }
+                        } else if (item.content_full.includes('🏷 Name:')) {
+                            messageText = tem.content_full.split("\n").filter((e, i) => {
+                                if (i > 1) {
+                                    return e
+                                }
+                            }).join("\n")
+                            if (messageText.length < 4)
+                                messageText = undefined
+                        } else if (item.content_full && item.content_full.length >= 2 && item.content_full !== item.attachment_name) {
+                            messageText = item.content_full
                         }
                         if (input.updateOnly === 1 && input.lastmessage) {
                             discordClient.editMessage(input.channel,input.lastmessage, { content: messageText, embed: embed })
