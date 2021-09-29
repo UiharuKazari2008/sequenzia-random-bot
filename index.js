@@ -593,7 +593,8 @@ function runtime() {
                                         const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_userid]);
                                         if (isExsists.error) {
                                             printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
-                                        } else if (isExsists.rows.length > 0) {
+                                        }
+                                        if (isExsists.rows.length > 0) {
                                             const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSEmbed-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_userid])
                                             if (updateHistoryItem.error) {
                                                 printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
@@ -636,7 +637,8 @@ function runtime() {
                                         const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_userid]);
                                         if (isExsists.error) {
                                             printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
-                                        } else if (isExsists.rows.length > 0) {
+                                        }
+                                        if (isExsists.rows.length > 0) {
                                             const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSEmbed-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_userid])
                                             if (updateHistoryItem.error) {
                                                 printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
