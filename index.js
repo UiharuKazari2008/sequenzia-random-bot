@@ -586,29 +586,29 @@ function runtime() {
                                 .then(async (msg) => {
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
-                                    if (input.fav_user)
+                                    if (input.fav_userid)
                                         await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
-                                    if (input.displayname && input.fav_user) {
+                                    if (input.displayname && input.fav_userid) {
                                         await sqlQuery(``)
-                                        const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_user]);
+                                        const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_userid]);
                                         if (isExsists.error) {
                                             printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
                                         } else if (isExsists.rows.length > 0) {
-                                            const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSEmbed-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_user])
+                                            const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSEmbed-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_userid])
                                             if (updateHistoryItem.error) {
                                                 printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
                                             } else {
                                                 printLine('GetData', `Updated Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
                                             }
                                         } else {
-                                            const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, 'ADSEmbed-' + input.displayname, 0, input.fav_user, moment().format('YYYY-MM-DD HH:mm:ss')])
+                                            const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, 'ADSEmbed-' + input.displayname, 0, input.fav_userid, moment().format('YYYY-MM-DD HH:mm:ss')])
                                             if (updateHistoryItem.error) {
                                                 printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
                                             } else {
                                                 printLine('GetData', `Saving Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
                                             }
                                         }
-                                        sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_user, 'ADSEmbed-' + input.displayname, 500, input.fav_user, 'ADSEmbed-' + input.displayname])
+                                        sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_userid, 'ADSEmbed-' + input.displayname, 500, input.fav_userid, 'ADSEmbed-' + input.displayname])
                                     }
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
@@ -629,8 +629,30 @@ function runtime() {
                                         }
                                     }
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
-                                    if (input.fav_user)
+                                    if (input.fav_userid)
                                         await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
+                                    if (input.displayname && input.fav_userid) {
+                                        await sqlQuery(``)
+                                        const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_userid]);
+                                        if (isExsists.error) {
+                                            printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
+                                        } else if (isExsists.rows.length > 0) {
+                                            const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSEmbed-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_userid])
+                                            if (updateHistoryItem.error) {
+                                                printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
+                                            } else {
+                                                printLine('GetData', `Updated Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
+                                            }
+                                        } else {
+                                            const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, 'ADSEmbed-' + input.displayname, 0, input.fav_userid, moment().format('YYYY-MM-DD HH:mm:ss')])
+                                            if (updateHistoryItem.error) {
+                                                printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
+                                            } else {
+                                                printLine('GetData', `Saving Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
+                                            }
+                                        }
+                                        sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_userid, 'ADSEmbed-' + input.displayname, 500, input.fav_userid, 'ADSEmbed-' + input.displayname])
+                                    }
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                         }
