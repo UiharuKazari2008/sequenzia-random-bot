@@ -487,7 +487,7 @@ function runtime() {
                         if ((input.updateOnly === 1 || forceUpdate) && input.lastmessage) {
                             discordClient.editMessage(input.channel,input.lastmessage, { content: messageText, embed: embed })
                                 .then(async (msg) => {
-                                    discordClient.removeMessageReactions(msg.channel.id, msg.id)
+                                    await discordClient.removeMessageReactions(msg.channel.id, msg.id)
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
                                     await sqlQuery(`UPDATE seqran_channels SET lasteid = ?, lastmodify = NOW() WHERE channel = ? AND search = ?`, [item.eid, input.channel, input.search])
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
@@ -572,7 +572,7 @@ function runtime() {
                             safeSQL(`SELECT * FROM sequenzia_favorites WHERE eid = ? AND userid = ? LIMIT 1`, [channels[0].lasteid, channels[0].fav_userid], async (err, found) => {
                                 await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
                                 if (found.length === 0 && !err) {
-                                    safeSQL(`INSERT INTO sequenzia_favorites SET eid = ?, userid = ?`, [channels[0].lasteid, channels[0].fav_userid], (err, result) => {
+                                    safeSQL(`INSERT INTO sequenzia_favorites SET eid = ?, userid = ?`, [channels[0].lasteid, channels[0].fav_userid], async (err, result) => {
                                         if (err) {
                                             printLine("Favorite", `Unable to favorite ${channels[0].lasteid} for ${channels[0].fav_userid}`, 'error', err)
                                             await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
