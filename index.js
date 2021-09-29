@@ -552,7 +552,7 @@ function runtime() {
             discordClient.on('messageReactionAdd', (msg, emoji, user) => {
                 console.log(emoji)
                 if (user.id !== discordClient.user.id && emoji.name === '🔀') {
-                    safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? LIMIT 1 ORDER BY lastmodify DESC`, [msg.channel.id, msg.id], (err, channels) => {
+                    safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? ORDER BY lastmodify DESC LIMIT 1`, [msg.channel.id, msg.id], (err, channels) => {
                         if (err) {
                             SendMessage(`Error getting channel configuration`, "error", 'main', "SQL", err)
                         } else if (channels.length > 0) {
@@ -565,7 +565,7 @@ function runtime() {
                         }
                     })
                 } else if (user.id !== discordClient.user.id && emoji.name === '❤') {
-                    safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? LIMIT 1 ORDER BY lastmodify DESC`, [msg.channel.id, msg.id], (err, channels) => {
+                    safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? ORDER BY lastmodify DESC LIMIT 1`, [msg.channel.id, msg.id], (err, channels) => {
                         if (err) {
                             SendMessage(`Error getting channel configuration`, "error", 'main', "SQL", err)
                         } else if (channels.length > 0) {
