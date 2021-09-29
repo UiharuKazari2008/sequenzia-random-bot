@@ -594,21 +594,21 @@ function runtime() {
                                         if (isExsists.error) {
                                             printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
                                         } else if (isExsists.rows.length > 0) {
-                                            const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_user])
+                                            const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSMicro-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_user])
                                             if (updateHistoryItem.error) {
                                                 printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
                                             } else {
                                                 printLine('GetData', `Updated Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
                                             }
                                         } else {
-                                            const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, input.displayname, 0, input.fav_user, moment().format('YYYY-MM-DD HH:mm:ss')])
+                                            const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, 'ADSMicro-' + input.displayname, 0, input.fav_user, moment().format('YYYY-MM-DD HH:mm:ss')])
                                             if (updateHistoryItem.error) {
                                                 printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
                                             } else {
                                                 printLine('GetData', `Saving Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
                                             }
                                         }
-                                        sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_user, input.displayname, 500, input.fav_user, input.displayname])
+                                        sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_user, 'ADSMicro-' + input.displayname, 500, input.fav_user, 'ADSMicro-' + input.displayname])
                                     }
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
