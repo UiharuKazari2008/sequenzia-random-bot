@@ -518,7 +518,6 @@ function runtime() {
                         }
 
                         if (input.displayname && input.fav_userid) {
-                            await sqlQuery(``)
                             const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_userid]);
                             if (isExsists.error) {
                                 printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
