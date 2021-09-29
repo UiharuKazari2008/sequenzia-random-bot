@@ -440,7 +440,7 @@ function runtime() {
                         const meta = metadata.rows[0];
                         let embed = {
                             title: `${meta.class} / ${(meta.channel_nice)? meta.channel_nice : meta.channel.split('-').join(' ')}`,
-                            url: `https://seq.moe/${meta.uri}?channel=random&search=eid:${item.eid}`,
+                            url: `https://seq.moe/${meta.uri}?channel=random&search=eid:${item.eid}&nsfw=true`,
                             timestamp: item.date,
                             color: (item.colorR && item.colorG && item.colorB) ? (item.colorR << 16) + (item.colorG << 8) + item.colorB : "16095753",
                             footer: {
@@ -488,6 +488,7 @@ function runtime() {
                             discordClient.editMessage(input.channel,input.lastmessage, { content: messageText, embed: embed })
                                 .then(async (msg) => {
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
+                                    await sqlQuery(`UPDATE seqran_channels SET lasteid = ?, lastmodify = NOW() WHERE channel = ? AND search = ?`, [item.eid, input.channel, input.search])
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
                                     if (input.fav_userid)
                                         await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
@@ -504,9 +505,9 @@ function runtime() {
                                                 .catch((err) => SendMessage(`Error deleting last message sent from ${input.channel} - ${err.message}`, "error", 'main', "Randomizer"))
                                         }
                                         if (input.linked === 1) {
-                                            await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ?`, [msg.id, input.channel])
+                                            await sqlQuery(`UPDATE seqran_channels SET lastmessage = ?, lasteid = ?, lastmodify = NOW() WHERE channel = ?`, [msg.id, item.eid, input.channel])
                                         } else {
-                                            await sqlQuery(`UPDATE seqran_channels SET lastmessage = ? WHERE channel = ? AND search = ?`, [msg.id, input.channel, input.search])
+                                            await sqlQuery(`UPDATE seqran_channels SET lastmessage = ?, lasteid = ?, lastmodify = NOW() WHERE channel = ? AND search = ?`, [msg.id, item.eid, input.channel, input.search])
                                         }
                                     }
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
@@ -561,6 +562,22 @@ function runtime() {
                             } else {
                                 sendRandomText(channels[0], true);
                             }
+                        }
+                    })
+                } else if (user.id !== discordClient.user.id && emoji.name === '❤') {
+                    safeSQL(`SELECT * FROM seqran_channels WHERE channel = ? AND lastmessage = ? LIMIT 1 ORDER BY lastmodify DESC`, [msg.channel.id, msg.id], (err, channels) => {
+                        if (err) {
+                            SendMessage(`Error getting channel configuration`, "error", 'main', "SQL", err)
+                        } else if (channels.length > 0) {
+                            safeSQL(`SELECT * FROM sequenzia_favorites WHERE eid = ? AND userid = ? LIMIT 1`, [channels[0].lasteid, channels[0].fav_userid], (err, found) => {
+                                if (found.length === 0 && !err) {
+                                    safeSQL(`INSERT INTO sequenzia_favorites SET eid = ?, userid = ?`, [channels[0].lasteid, channels[0].fav_userid], (err, result) => {
+                                        if (err) {
+                                            printLine("Favorite", `Unable to favorite ${channels[0].lasteid} for ${channels[0].fav_userid}`, 'error', err)
+                                        }
+                                    })
+                                }
+                            })
                         }
                     })
                 }
