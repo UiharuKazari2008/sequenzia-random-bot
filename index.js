@@ -4,9 +4,7 @@ const facilityName = 'Discord-Replay';
 const eris = require('eris');
 const fs = require('fs');
 const path = require('path');
-const amqp = require('amqplib/callback_api');
 const crypto = require("crypto");
-const storageHandler = require('node-persist');
 const os = require('os');
 const cron = require('node-cron');
 const mysql = require('mysql2');
@@ -19,8 +17,6 @@ let logger1 = undefined
 let logger2 = undefined
 let remoteLogging1 = false
 let remoteLogging2 = false
-let amqpConn = null;
-let pubChannel = null;
 let selfstatic = {};
 let init = 0;
 const accepted_image_types = ['jpeg','jpg','jiff', 'png', 'webp', 'tiff'];
@@ -192,9 +188,6 @@ async function printLine(proccess, text, level, object, object2) {
     }
 }
 
-const MQServer = `amqp://${systemglobal.MQUsername}:${systemglobal.MQPassword}@${systemglobal.MQServer}/?heartbeat=60`
-const MQWorkerCmd = `command.discord.${systemglobal.SystemName}`
-
 function runtime() {
     printLine("SQL", "Getting Discord Servers", "debug")
     simpleSQL(`SELECT * FROM discord_servers`,  (err, discordservers) => {
@@ -234,60 +227,6 @@ function runtime() {
                 AlrmNotif      : `${homeGuild.chid_msg_notif}`,
             }
 
-            function startWorkerCmd() {
-                amqpConn.createChannel(function(err, ch) {
-                    if (closeOnErr(err)) return;
-                    ch.on("error", function(err) {
-                        printLine("KanmiMQ", "Channel 0 Error (Command)", "error", err)
-                    });
-                    ch.on("close", function() {
-                        printLine("KanmiMQ", "Channel 0 Closed (Command)", "critical")
-                        start();
-                    });
-                    ch.prefetch(10);
-                    ch.assertQueue(MQWorkerCmd, { durable: true }, function(err, _ok) {
-                        if (closeOnErr(err)) return;
-                        ch.consume(MQWorkerCmd, processMsg, { noAck: true });
-                        printLine("KanmiMQ", "Channel 0 Worker Ready (Command)", "debug")
-                    });
-                    function processMsg(msg) {
-                        workCmd(msg, function(ok) {
-                            try {
-                                if (ok)
-                                    ch.ack(msg);
-                                else
-                                    ch.reject(msg, true);
-                            } catch (e) {
-                                closeOnErr(e);
-                            }
-                        });
-                    }
-                });
-            }
-            function workCmd(msg, cb) {
-                let MessageContents = JSON.parse(Buffer.from(msg.content).toString('utf-8'));
-                if (MessageContents.hasOwnProperty('command')) {
-                    switch (MessageContents.command) {
-                        case 'RESET' :
-                            console.log("================================ RESET SYSTEM ================================ ".bgRed);
-                            cb(true)
-                            process.exit(10);
-                            break;
-                        case 'ESTOP':
-                            cb(true);
-                            SendMessage("🛑 EMERGENCY STOP - SEQUENZIA I/O FRAMEWORK", staticChID.AlrmNotif, 'main', "Discord")
-                            amqpConn.close();
-                            setInterval(function () {
-                                console.log("================================ EMERGENCY STOP! ================================ ".bgRed);
-                                process.exit(0);
-                            }, 1000)
-                            break;
-                        default:
-                            printLine("RemoteCommand", `Unknown Command: ${MessageContents.command}`, "debug");
-                            cb(true)
-                    }
-                }
-            }
             function SendMessage(message, channel, guild, proccess, inbody) {
                 let body = 'undefined'
                 let proc = 'Unknown'
@@ -399,41 +338,12 @@ function runtime() {
                 }
             }
 
-            function start() {
-                amqp.connect(MQServer, function(err, conn) {
-                    if (err) {
-                        printLine("KanmiMQ", "Initialization Error", "critical", err)
-                        return setTimeout(start, 1000);
-                    }
-                    conn.on("error", function(err) {
-                        if (err.message !== "Connection closing") {
-                            printLine("KanmiMQ", "Initialization Connection Error", "emergency", err)
-                        }
-                    });
-                    conn.on("close", function() {
-                        printLine("KanmiMQ", "Attempting to Reconnect...", "debug")
-                        return setTimeout(start, 5000);
-                    });
-                    printLine("KanmiMQ", `Connected to Kanmi Exchange as ${systemglobal.SystemName}!`, "info")
-                    amqpConn = conn;
-                    whenConnected();
-                });
-            }
-            function closeOnErr(err) {
-                if (!err) return false;
-                printLine("KanmiMQ", "Connection Closed due to error", "error", err)
-                amqpConn.close();
-                return true;
-            }
-            function whenConnected() {
-                startWorkerCmd();
-                registerTimers();
-                setInterval(registerTimers, 60000)
-                discordClient.editStatus( "online",{
-                    name: 'alexa',
-                    type: 3
-                })
-            }
+            registerTimers();
+            setInterval(registerTimers, 60000)
+            discordClient.editStatus( "online",{
+                name: 'alexa',
+                type: 3
+            })
 
             function registerCommands() {
                 discordClient.registerCommand("random", function (msg,args) {
@@ -588,29 +498,6 @@ function runtime() {
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
                                     if (input.fav_userid)
                                         await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
-                                    if (input.displayname && input.fav_userid) {
-                                        await sqlQuery(``)
-                                        const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_userid]);
-                                        if (isExsists.error) {
-                                            printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
-                                        }
-                                        if (isExsists.rows.length > 0) {
-                                            const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSEmbed-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_userid])
-                                            if (updateHistoryItem.error) {
-                                                printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
-                                            } else {
-                                                printLine('GetData', `Updated Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
-                                            }
-                                        } else {
-                                            const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, 'ADSEmbed-' + input.displayname, 0, input.fav_userid, moment().format('YYYY-MM-DD HH:mm:ss')])
-                                            if (updateHistoryItem.error) {
-                                                printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
-                                            } else {
-                                                printLine('GetData', `Saving Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
-                                            }
-                                        }
-                                        sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_userid, 'ADSEmbed-' + input.displayname, 500, input.fav_userid, 'ADSEmbed-' + input.displayname])
-                                    }
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                         } else {
@@ -632,33 +519,33 @@ function runtime() {
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
                                     if (input.fav_userid)
                                         await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
-                                    if (input.displayname && input.fav_userid) {
-                                        await sqlQuery(``)
-                                        const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_userid]);
-                                        if (isExsists.error) {
-                                            printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
-                                        }
-                                        if (isExsists.rows.length > 0) {
-                                            const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSEmbed-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_userid])
-                                            if (updateHistoryItem.error) {
-                                                printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
-                                            } else {
-                                                printLine('GetData', `Updated Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
-                                            }
-                                        } else {
-                                            const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, 'ADSEmbed-' + input.displayname, 0, input.fav_userid, moment().format('YYYY-MM-DD HH:mm:ss')])
-                                            if (updateHistoryItem.error) {
-                                                printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
-                                            } else {
-                                                printLine('GetData', `Saving Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
-                                            }
-                                        }
-                                        sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_userid, 'ADSEmbed-' + input.displayname, 500, input.fav_userid, 'ADSEmbed-' + input.displayname])
-                                    }
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                         }
 
+                        if (input.displayname && input.fav_userid) {
+                            await sqlQuery(``)
+                            const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_userid]);
+                            if (isExsists.error) {
+                                printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
+                            }
+                            if (isExsists.rows.length > 0) {
+                                const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, 'ADSEmbed-' + input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_userid])
+                                if (updateHistoryItem.error) {
+                                    printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
+                                } else {
+                                    printLine('GetData', `Updated Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
+                                }
+                            } else {
+                                const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, 'ADSEmbed-' + input.displayname, 0, input.fav_userid, moment().format('YYYY-MM-DD HH:mm:ss')])
+                                if (updateHistoryItem.error) {
+                                    printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
+                                } else {
+                                    printLine('GetData', `Saving Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
+                                }
+                            }
+                            sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_userid, 'ADSEmbed-' + input.displayname, 500, input.fav_userid, 'ADSEmbed-' + input.displayname])
+                        }
                     } else {
                         SendMessage(`No server was found for ${item.server} for ${item.id}, this is not normal!`, "error", 'main', "Randomizer")
                     }
