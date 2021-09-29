@@ -14,6 +14,7 @@ const colors = require('colors');
 const sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
 const graylog2 = require("graylog2");
 const md5 = require('md5');
+const moment = require("moment");
 let logger1 = undefined
 let logger2 = undefined
 let remoteLogging1 = false
@@ -500,7 +501,7 @@ function runtime() {
                     }
                 })
             }
-            async function sendRandomText(input) {
+            async function sendRandomText(input, forceUpdate) {
                 let messageText = '';
                 if (input.message) {
                     if (input.message.includes('QUOTE-')) {
@@ -527,7 +528,7 @@ function runtime() {
                     })
                     .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
             }
-            async function sendRandomEmbed(input) {
+            async function sendRandomEmbed(input, forceUpdate) {
                 const itemResults = await sqlQuery(`SELECT kanmi_records.* FROM kanmi_records, kanmi_channels WHERE kanmi_records.channel = kanmi_channels.channelid AND ${(input.search) ? '( ' + input.search + ') AND ' : ''}(attachment_url IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`,);
                 if (itemResults.rows.length === 1) {
                     const item = itemResults.rows[0];
@@ -580,11 +581,35 @@ function runtime() {
                         } else if (item.content_full && item.content_full.length >= 2 && item.content_full !== item.attachment_name) {
                             messageText = item.content_full
                         }
-                        if (input.updateOnly === 1 && input.lastmessage) {
+                        if ((input.updateOnly === 1 || forceUpdate) && input.lastmessage) {
                             discordClient.editMessage(input.channel,input.lastmessage, { content: messageText, embed: embed })
                                 .then(async (msg) => {
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
+                                    if (input.fav_user)
+                                        await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
+                                    if (input.displayname && input.fav_user) {
+                                        await sqlQuery(``)
+                                        const isExsists = await sqlQuery(`SELECT * FROM sequenzia_display_history WHERE eid = ? AND user = ?`, [item.eid, input.fav_user]);
+                                        if (isExsists.error) {
+                                            printLine('SQL', `Error adding messages to display history - ${isExsists.error.sqlMessage}`, 'error', err)
+                                        } else if (isExsists.rows.length > 0) {
+                                            const updateHistoryItem = await sqlQuery(`UPDATE sequenzia_display_history SET screen = ?, name = ?, date = ? WHERE eid = ? AND user = ?`, [0, input.displayname, moment().format('YYYY-MM-DD HH:mm:ss'), item.eid, input.fav_user])
+                                            if (updateHistoryItem.error) {
+                                                printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
+                                            } else {
+                                                printLine('GetData', `Updated Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
+                                            }
+                                        } else {
+                                            const updateHistoryItem = await sqlQuery(`INSERT INTO sequenzia_display_history SET eid = ?, name = ?, screen = ?, user = ?, date = ?`, [item.eid, input.displayname, 0, input.fav_user, moment().format('YYYY-MM-DD HH:mm:ss')])
+                                            if (updateHistoryItem.error) {
+                                                printLine('SQL', `Error adding messages to display history - ${updateHistoryItem.error.sqlMessage}`, 'error', err)
+                                            } else {
+                                                printLine('GetData', `Saving Image "${item.id}" to Display History for "${input.displayname}"`, 'debug')
+                                            }
+                                        }
+                                        sqlQuery(`DELETE a FROM sequenzia_display_history a LEFT JOIN (SELECT eid AS keep_eid, date FROM sequenzia_display_history WHERE user = ? AND name = ? ORDER BY date DESC LIMIT ?) b ON (a.eid = b.keep_eid) WHERE b.keep_eid IS NULL AND a.user = ? AND a.name = ?;`, [input.fav_user, input.displayname, 500, input.fav_user, input.displayname])
+                                    }
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                         } else {
@@ -604,6 +629,8 @@ function runtime() {
                                         }
                                     }
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
+                                    if (input.fav_user)
+                                        await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                         }
@@ -626,9 +653,9 @@ function runtime() {
                         } else if (channels.length > 0) {
                             discordClient.removeMessageReactions(msg.channel.id, msg.id)
                             if (channels[0].search) {
-                                sendRandomEmbed(channels[0]);
+                                sendRandomEmbed(channels[0], true);
                             } else {
-                                sendRandomText(channels[0]);
+                                sendRandomText(channels[0], true);
                             }
                         }
                     })
