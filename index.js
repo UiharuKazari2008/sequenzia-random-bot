@@ -338,13 +338,6 @@ function runtime() {
                 }
             }
 
-            registerTimers();
-            setInterval(registerTimers, 60000)
-            discordClient.editStatus( "online",{
-                name: 'alexa',
-                type: 3
-            })
-
             function registerCommands() {
                 discordClient.registerCommand("random", function (msg,args) {
                     let searchQuery;
@@ -590,8 +583,15 @@ function runtime() {
                     })
                     printLine("Discord", "Registering Commands", "debug")
                     registerCommands();
+                    registerTimers();
+                    setInterval(registerTimers, 60000)
+                    setTimeout(() => {
+                        discordClient.editStatus( "online",{
+                            name: 'alexa',
+                            type: 3
+                        })
+                    }, 5000)
                     init = 1;
-                    start();
                 }
             });
             discordClient.on("error", (err) => {
