@@ -484,6 +484,9 @@ function runtime() {
                         } else if (item.content_full && item.content_full.length >= 2 && item.content_full !== item.attachment_name) {
                             messageText = item.content_full
                         }
+                        let isNotFavorited = null
+                        if (input.fav_userid)
+                            isNotFavorited = ((await sqlQuery(`SELECT eid FROM sequenzia_favorites WHERE eid = ? AND userid = ? LIMIT 1`, [item.eid, input.fav_userid])).rows.length === 0)
                         if ((input.updateOnly === 1 || forceUpdate) && input.lastmessage) {
                             discordClient.editMessage(input.channel,input.lastmessage, { content: messageText, embed: embed })
                                 .then(async (msg) => {
@@ -491,7 +494,7 @@ function runtime() {
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
                                     await sqlQuery(`UPDATE seqran_channels SET lasteid = ?, lastmodify = NOW() WHERE channel = ? AND search = ?`, [item.eid, input.channel, input.search])
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
-                                    if (input.fav_userid)
+                                    if (input.fav_userid && isNotFavorited)
                                         await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
@@ -512,7 +515,7 @@ function runtime() {
                                         }
                                     }
                                     await discordClient.addMessageReaction(msg.channel.id, msg.id, '🔀')
-                                    if (input.fav_userid)
+                                    if (input.fav_userid && isNotFavorited)
                                         await discordClient.addMessageReaction(msg.channel.id, msg.id, '❤')
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
