@@ -474,7 +474,7 @@ function runtime() {
                                 messageText = input.message;
                             }
                         } else if (item.content_full.includes('🏷 Name:')) {
-                            messageText = tem.content_full.split("\n").filter((e, i) => {
+                            messageText = item.content_full.split("\n").filter((e, i) => {
                                 if (i > 1) {
                                     return e
                                 }
