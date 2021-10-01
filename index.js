@@ -432,7 +432,7 @@ function runtime() {
                     .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
             }
             async function sendRandomEmbed(input, forceUpdate) {
-                const itemResults = await sqlQuery(`SELECT kanmi_records.* FROM kanmi_records, kanmi_channels WHERE kanmi_records.channel = kanmi_channels.channelid AND ${(input.search) ? '( ' + input.search + ') AND ' : ''}(attachment_url IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`,);
+                const itemResults = await sqlQuery(`SELECT kanmi_records.* FROM kanmi_records, kanmi_channels WHERE kanmi_records.channel = kanmi_channels.channelid AND ${(input.search) ? '( ' + input.search + ') AND ' : ''}(attachment_hash IS NOT NULL OR cache_url IS NOT NULL) AND attachment_extra IS NULL AND cache_extra IS NULL ORDER BY RAND() LIMIT 1`,);
                 if (itemResults.rows.length === 1) {
                     const item = itemResults.rows[0];
                     const metadata = await sqlQuery('SELECT DISTINCT discord_servers.`serverid` as server, discord_servers.`name`, discord_servers.`nice_name` AS server_nice, discord_servers.`avatar`, kanmi_channels.`name` AS channel, kanmi_channels.`nice_name` AS channel_nice, sequenzia_class.`name` AS class, sequenzia_superclass.`uri` AS uri FROM discord_servers, kanmi_channels, sequenzia_class, sequenzia_superclass WHERE discord_servers.`serverid` = kanmi_channels.`serverid` AND kanmi_channels.`channelid` = ? AND sequenzia_class.`class` = kanmi_channels.`classification` AND sequenzia_superclass.`super` = sequenzia_class.`super` LIMIT 1', [item.channel]);
@@ -449,8 +449,8 @@ function runtime() {
                             }
                         };
                         let url
-                        if (item.attachment_url) {
-                            url = item.attachment_url;
+                        if (item.attachment_hash) {
+                            url = `https://media.discordapp.net/attachments/` + ((item.attachment_hash.includes('/')) ? item.attachment_hash : `${item.channel}/${item.attachment_hash}/${item.attachment_name}`)
                         } else if (item.cache_url) {
                             url = item.cache_url;
                         }
