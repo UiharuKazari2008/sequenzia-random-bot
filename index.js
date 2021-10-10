@@ -460,7 +460,7 @@ function runtime() {
                             }
                         }
 
-                        let messageText = undefined;
+                        let messageText = " ";
                         if (input.message) {
                             if (input.message.includes('QUOTE-')) {
                                 const tag = input.message.split('QUOTE-').join('')
@@ -488,7 +488,7 @@ function runtime() {
                         if (input.fav_userid)
                             isNotFavorited = ((await sqlQuery(`SELECT eid FROM sequenzia_favorites WHERE eid = ? AND userid = ? LIMIT 1`, [item.eid, input.fav_userid])).rows.length === 0)
                         if ((input.updateOnly === 1 || forceUpdate) && input.lastmessage) {
-                            discordClient.editMessage(input.channel,input.lastmessage, { content: messageText, embed: embed })
+                            discordClient.editMessage(input.channel, input.lastmessage, { content: messageText, embed: embed })
                                 .then(async (msg) => {
                                     await discordClient.removeMessageReactions(msg.channel.id, msg.id)
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
