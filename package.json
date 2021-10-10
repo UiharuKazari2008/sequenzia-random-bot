@@ -1,6 +1,6 @@
 {
   "name": "sequenzia-random-bot",
-  "version": "1.0.0",
+  "version": "2.2",
   "dependencies": {
     "amqplib": "^0.7.1",
     "colors": "^1.4.0",
