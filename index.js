@@ -19,7 +19,6 @@ let remoteLogging1 = false
 let remoteLogging2 = false
 let selfstatic = {};
 let init = 0;
-const accepted_image_types = ['jpeg','jpg','jiff', 'png', 'webp', 'tiff'];
 let timers = new Map();
 
 const sqlConnection = mysql.createConnection({
@@ -34,11 +33,15 @@ const sqlPromise = sqlConnection.promise();
 function simpleSQL (sql_q, callback) {
     sqlConnection.query(sql_q, function (err, rows) {
         //here we return the results of the query
+        if (err.message === 'Can\'t add new command when connection is in closed state')
+            process.exit(1);
         callback(err, rows);
     });
 }
 function safeSQL (sql_q, inputs, callback) {
     sqlConnection.query(mysql.format(sql_q, inputs), function (err, rows) {
+        if (err.message === 'Can\'t add new command when connection is in closed state')
+            process.exit(1);
         callback(err, rows);
     });
 }
@@ -51,6 +54,8 @@ async function sqlQuery (sql_q, inputs, nolog) {
             rows, fields, sql_q, inputs
         }
     } catch (err) {
+        if (err.message === 'Can\'t add new command when connection is in closed state')
+            process.exit(1);
         console.error(sql_q);
         console.error(inputs);
         console.error(err);
