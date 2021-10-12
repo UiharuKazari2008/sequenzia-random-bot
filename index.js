@@ -33,14 +33,14 @@ const sqlPromise = sqlConnection.promise();
 function simpleSQL (sql_q, callback) {
     sqlConnection.query(sql_q, function (err, rows) {
         //here we return the results of the query
-        if (err && err.sqlMessage.includes('closed state'))
+        if (err && err.message && err.message.includes('closed state'))
             process.exit(1);
         callback(err, rows);
     });
 }
 function safeSQL (sql_q, inputs, callback) {
     sqlConnection.query(mysql.format(sql_q, inputs), function (err, rows) {
-        if (err && err.sqlMessage.includes('closed state'))
+        if (err && err.message && err.message.includes('closed state'))
             process.exit(1);
         callback(err, rows);
     });
@@ -54,7 +54,7 @@ async function sqlQuery (sql_q, inputs, nolog) {
             rows, fields, sql_q, inputs
         }
     } catch (err) {
-        if (err && err.sqlMessage.includes('closed state'))
+        if (err && err.message && err.message.includes('closed state'))
             process.exit(1);
         console.error(sql_q);
         console.error(inputs);
