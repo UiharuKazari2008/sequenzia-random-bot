@@ -481,11 +481,14 @@ function runtime() {
                         } else if (item.content_full && item.content_full.length >= 2 && item.content_full !== item.attachment_name) {
                             messageText = item.content_full
                         }
+                        if (messageText && messageText.length > 0) {
+                            embed.description = messageText
+                        }
                         let isNotFavorited = null
                         if (input.fav_userid)
                             isNotFavorited = ((await sqlQuery(`SELECT eid FROM sequenzia_favorites WHERE eid = ? AND userid = ? LIMIT 1`, [item.eid, input.fav_userid])).rows.length === 0)
                         if ((input.updateOnly === 1 || forceUpdate) && input.lastmessage) {
-                            discordClient.editMessage(input.channel, input.lastmessage, { content: messageText, embed: embed })
+                            discordClient.editMessage(input.channel, input.lastmessage, { content: '', embed: embed })
                                 .then(async (msg) => {
                                     await discordClient.removeMessageReactions(msg.channel.id, msg.id)
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
@@ -496,7 +499,7 @@ function runtime() {
                                 })
                                 .catch((err) => SendMessage(`Error sending random item to ${input.channel} - ${err.message}`, "error", 'main', "Randomizer", err))
                         } else {
-                            discordClient.createMessage(input.channel,{ content: messageText, embed: embed })
+                            discordClient.createMessage(input.channel,{ content: '', embed: embed })
                                 .then(async (msg) => {
                                     printLine("Randomizer", `Sent ${item.attachment_name} to ${msg.channel.id}`, "info");
                                     const last = await sqlQuery("SELECT lastmessage FROM seqran_channels WHERE channel = ? AND search = ?", [input.channel, input.search]);
