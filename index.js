@@ -258,17 +258,17 @@ function runtime() {
                                 if (timers.has(hash)) {
                                     const _timer = timers.get(hash)
                                     if (channel.enabled === 0) {
-                                        printLine("Randomizer", `Removing timer for ${channel.channel}`, "info");
+                                        printLine("Randomizer", `Removing timer for ${channel.channel}`, "debug");
                                         _timer.stop();
                                         timers.delete((hash));
                                     } else if (_timer.scheduleString !== channel.schedule || _timer.messageText !== channel.message) {
-                                        printLine("Randomizer", `Updating timer for ${channel.channel} to "${channel.schedule}"`, "info");
+                                        printLine("Randomizer", `Updating timer for ${channel.channel} to "${channel.schedule}"`, "debug");
                                         _timer.stop();
                                         timers.delete((hash));
                                         registerTimer(channel, hash);
                                     }
                                 } else if (channel.enabled === 1) {
-                                    printLine("Randomizer", `Registering new timer for ${channel.channel} @ "${channel.schedule}"`, "info");
+                                    printLine("Randomizer", `Registering new timer for ${channel.channel} @ "${channel.schedule}"`, "debug");
                                     registerTimer(channel, hash);
                                 }
                             }
