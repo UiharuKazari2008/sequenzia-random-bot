@@ -320,7 +320,7 @@ function runtime() {
                                 icon_url: `https://cdn.discordapp.com/icons/${meta.server}/${meta.avatar}.png`
                             },
                             image: {
-                                url: `https://media.discordapp.net/attachments/` + ((item.attachment_hash.includes('/')) ? item.attachment_hash : `${item.channel}/${item.attachment_hash}/${item.attachment_name}`)
+                                url: `https://cdn.discordapp.com/attachments/` + ((item.attachment_hash.includes('/')) ? item.attachment_hash : `${item.channel}/${item.attachment_hash}/${item.attachment_name}`)
                             }
                         };
 
